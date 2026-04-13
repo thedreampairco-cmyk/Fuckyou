@@ -5,18 +5,23 @@ import { prisma } from "@/lib/prisma";
 
 export async function GET(
   _req: NextRequest,
-  { params }: { params: { orderId: string } }
+  { params }: { params: Promise<{ orderId: string }> }
 ) {
+  const { orderId } = await params;
+
   const session = await auth();
-  if (!session?.user?.id)
+  if (!session?.user?.id) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
 
   const order = await prisma.order.findFirst({
-    where: { id: params.orderId, userId: session.user.id },
+    where: { id: orderId, userId: session.user.id },
     include: { service: true },
   });
 
-  if (!order) return NextResponse.json({ error: "Order not found" }, { status: 404 });
+  if (!order) {
+    return NextResponse.json({ error: "Order not found" }, { status: 404 });
+  }
 
   return NextResponse.json({ order });
 }
