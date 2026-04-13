@@ -5,14 +5,16 @@ import { validateApiKey, apiSuccess, apiError } from "@/lib/api-auth";
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: { orderId: string } }
+  { params }: { params: Promise<{ orderId: string }> }
 ) {
+  const { orderId } = await params;
+
   const { error, user } = await validateApiKey(req);
   if (error) return error;
 
   const order = await prisma.order.findFirst({
-    where: { id: params.orderId, userId: user!.id },
-    select: { id: true, status: true, quantity: true, totalPrice: true, createdAt: true, targetUsername: true },
+    where: { id: orderId, userId: user!.id },
+    select: { id: true, status: true, quantity: true, totalPrice: true, createdAt: true }
   });
 
   if (!order) return apiError("Order not found", 404);
