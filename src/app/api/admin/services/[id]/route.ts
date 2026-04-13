@@ -19,7 +19,9 @@ const schema = z.object({
   isActive: z.boolean().optional(),
 });
 
-export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
+export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+
   const session = await isAdmin();
   if (!session) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
@@ -28,7 +30,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   if (!parsed.success) return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
 
   const service = await prisma.service.update({
-    where: { id: params.id },
+    where: { id },
     data: parsed.data,
   });
 
@@ -45,18 +47,20 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   return NextResponse.json({ service });
 }
 
-export async function DELETE(_req: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+
   const session = await isAdmin();
   if (!session) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
-  await prisma.service.delete({ where: { id: params.id } });
+  await prisma.service.delete({ where: { id } });
 
   await prisma.auditLog.create({
     data: {
       userId: session.user!.id!,
       action: "DELETE",
       entity: "Service",
-      entityId: params.id,
+      entityId: id,
     },
   });
 
