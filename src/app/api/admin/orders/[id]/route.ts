@@ -8,17 +8,22 @@ const schema = z.object({
   status: z.enum(["PENDING", "IN_PROGRESS", "COMPLETED", "PARTIAL", "CANCELLED"]),
 });
 
-export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
+export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+
   const session = await auth();
-  if (!session?.user || (session.user as any).role !== "ADMIN")
+  if (!session?.user || (session.user as any).role !== "ADMIN") {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
 
   const body = await req.json();
   const parsed = schema.safeParse(body);
-  if (!parsed.success) return NextResponse.json({ error: "Invalid status" }, { status: 400 });
+  if (!parsed.success) {
+    return NextResponse.json({ error: "Invalid status" }, { status: 400 });
+  }
 
   const order = await prisma.order.update({
-    where: { id: params.id },
+    where: { id },
     data: { status: parsed.data.status },
   });
 
